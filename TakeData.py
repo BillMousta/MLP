@@ -6,6 +6,7 @@ import Data
 from numpy.fft import *
 import math
 import numpy as np
+import seaborn as sns
 import Visualizations
 
 
@@ -24,16 +25,23 @@ def get_data(stock, start, end, interval):
     # Read from .csv file instead of yahoo finance
     data = pd.read_csv(filename, parse_dates=True, index_col='Date')
     # data.drop(['Open','High', 'Low', 'Close', 'Volume'], axis=1, inplace= True)
-    data = add_features(data)
-    # return data.drop(['Daily Returns'], axis=1)
+    data = add_features(data, True)
+    # Adding Labels
+    data = add_labels(data)
     return data
+
+
 """
 Add useful indicators like Bollinger Bands, Moving Average etc
 to get more use useful data and try to predict the price
 """
-def add_features(stock):
+def add_features(stock, flag):
+    stock['Daily Returns'] = stock['Adj Close'].pct_change(1)
     # Compute moving average of Adj Close price 5 41 days
     stock['MA 5'] = stock['Adj Close'].rolling(5).mean().shift(-5)
+    # For crash example
+    if not flag:
+        return stock
     stock['MA 21'] = stock['Adj Close'].rolling(21).mean().shift(-21)
 
     # Compute Exponential moving average
@@ -50,16 +58,11 @@ def add_features(stock):
     stock['MACD'] = (stock['12ema'] - stock['26ema'])
     stock = stock.drop(['26ema', '12ema'], axis=1)
 
-    stock['Daily Returns'] = stock['Adj Close'].pct_change(1)
-
     # Compute fourier transform
     stock = denoising(stock)
 
-    # Adding Labels
-    stock = add_labels(stock)
-    # Visualizations.visualize_indicators(stock, 1000)
-    # stock.drop(['Daily Returns'],axis=1, inplace=True)
     return stock
+
 
 """
 Filter signal according to threshold
@@ -70,6 +73,7 @@ def filter_signal(signal, threshold=1e4):
     fourier[frequencies > threshold] = 0
     return irfft(fourier, n= signal.size)
 
+
 """
 Using fast fourier transform to denoise the data
 accoring with closing price
@@ -78,13 +82,13 @@ def denoising(data):
     data['FT 10000 comp'] = filter_signal(data['Adj Close'])
     return data
 
+
 """
 Add labels according to daily percent change a Moving Average of 7 days,
 if pct change > 0.5% UP Trend -> label 2 Price probably goes UP
 if pct change < -0.5% Down Trend -> label 1 Price probably goes Down
 else Same -> label 0 
 """
-
 def add_labels(data):
 
     movements = []
@@ -108,58 +112,20 @@ def add_labels(data):
     return data
 
 
-def backtesting(data):
-    data.loc[data['Label'] == 2, 'Label'] = 1
-    data.loc[data['Label'] == 1, 'Label'] = -1
-    data['Strategy_Ret'] = data['Label'].shift()*data['Daily Returns']
-    data["Strategy"] = data.Strategy_Ret.add(1, fill_value = 0).cumprod() * data.iloc[0, 0]
+"""
+Return all correlations for data index for each stock
+of data set stocks
+"""
+def get_correlations(index, stocks, start):
+    cor = []
+    for stock in stocks:
+        data = get_data(stock, start="2000-01-01", end='2021-01-01', interval='1d')
+        correlation = index['Adj Close'][start:].pct_change(1).corr(data['Adj Close'][start:].pct_change(1))
+        cor.append(correlation)
 
-    data[["Adj Close", "Strategy"]].plot(figsize=(15, 10), fontsize=15)
-    plt.legend(fontsize=15)
-    plt.title("SMA Strategy", fontsize=20)
-    plt.show()
-    data.loc[data['Label'] == 1, 'Label'] = 2
-    data.loc[data['Label'] == -1, 'Label'] = 1
+    print("Correlations")
+    for i in cor:
+        print(i)
+    return cor
 
-
-if __name__ == '__main__':
-    stocks_names = ['AAPL', 'MSFT', 'AMZN', 'GOOGL', 'FB']
-    index_names = ['SPY']
-    # index_names = ['BTC-USD']
-    # stocks_names = ['ETH-USD']
-
-    # each element on stock_data list is a pandas data frame
-    index_data = get_data(index_names[0], start="2000-01-01", end='2021-01-01', interval='1d')
-
-    visual = Visualizations
-    start = '2020-04-01'
-    end = '2020-09-30'
-    # start = '2017-01-01'
-    # end = '2018-01-01'
-    # visual.visualize_indicators(index_data,504)
-    # visual.visualize_trend(index_data[start:end])
-    # visual.visualize_class_distribution(index_data['Label'].to_numpy(), 'Class Distribution')
-    # visual.visualize_FT(index_data)
-    print(index_data.columns)
-
- #   backtesting(index_data)
-    count0 = index_data['Label'][index_data['Label'] == 1].size
-    # print(count0)
-    # total = count0/index_data.size
-    # print(index_data['Label'][index_data['Label'] == 0])
-    # print(index_data)
-    aapl = get_data(stocks_names[0], start="2000-01-01", end='2021-01-01', interval='1d')
-    # visual.visualize_FT(aapl)
-    # aapl = aapl.shift(-9)
-    merged_stocks = pd.concat([index_data['Adj Close'], aapl['Adj Close']], axis=1)
-    merged_stocks.columns = ['S&P500', 'APPLE']
-    # print(merged_stocks.head())
-
-    print(index_data['Adj Close']["2019-01-01":].pct_change(1).corr(aapl['Adj Close']['2019-01-01':].pct_change(1)))
-    # visual.visualize_correlation(index_data['Adj Close']["2019-01-01":].pct_change(1),aapl['Adj Close']['2019-01-01':].pct_change(1))
-    # visual.visualize_correlation(merged_stocks['2019-01-01':].pct_change(1))
-
-    # d.visualize_correlation(index_data['Adj Close'].pct_change(1), aapl['Adj Close'].pct_change(1))
-    # print(index_data['Adj Close'].pct_change(1).corr(aapl['Adj Close'].pct_change(1)))
-    # d.visualization('2015', dt.datetime.now(), index_data, 'S&P 500', aapl, 'Apple')
 

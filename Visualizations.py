@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
 import seaborn as sns
 """
@@ -20,7 +19,7 @@ def visualize_indicators(data, start):
     plt.ylabel('USD')
     plt.xlabel('Date')
     plt.legend()
-    plt.savefig('indicators.png')
+    # plt.savefig('indicators.png')
     plt.show()
 
 
@@ -36,7 +35,7 @@ def visualize_FT(data):
     plt.ylabel('USD')
     plt.xlabel('Date')
     plt.legend()
-    plt.savefig('denoise.png')
+    # plt.savefig('denoise.png')
     plt.show()
 
 
@@ -56,7 +55,7 @@ def visualize_train_test_data(train_data, test_data, size):
     plt.ylabel('USD')
     plt.xlabel('Date')
     plt.legend()
-    plt.savefig('test_train_data.png')
+    # plt.savefig('test_train_data.png')
     plt.show()
 
 
@@ -85,12 +84,12 @@ def visualize_trend(data):
     fig = plt.figure(figsize=(15, 5))
     plt.title('Up trend for S&P 500')
     plt.plot(data['Adj Close'], color='r', lw=2.)
-    plt.plot(data['Adj Close'], '^', markersize=10, color='m', label='buying signal', markevery=(data['Label']==1))
-    plt.plot(data['Adj Close'], 'v', markersize=10, color='k', label='selling\shorting signal', markevery=(data['Label']==0))
+    plt.plot(data['Adj Close'], '^', markersize=10, color='m', label='buying signal', markevery=(data['Label']==2))
+    plt.plot(data['Adj Close'], 'v', markersize=10, color='k', label='selling\shorting signal', markevery=(data['Label']==1))
     plt.ylabel('USD')
     plt.xlabel('Date')
     plt.legend(loc='upper left')
-    plt.savefig('Buy selling signals')
+    # plt.savefig('Buy selling signals')
     plt.show()
 
 """
@@ -109,7 +108,7 @@ def visualize_class_distribution(data, title):
     plt.xlabel('Movement')
     plt.ylabel('No of Labels')
     plt.legend()
-    plt.savefig(title)
+    # plt.savefig(title)
     plt.show()
 
 
